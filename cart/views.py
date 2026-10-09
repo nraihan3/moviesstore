@@ -4,6 +4,10 @@ from movies.models import Movie
 from .models import Order, Item
 from django.contrib.auth.decorators import login_required
 from .utils import calculate_cart_total
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Sum
+
 def index(request):
     cart_total = 0
     movies_in_cart = []
@@ -27,6 +31,15 @@ def add(request, id):
 def clear(request):
     request.session['cart'] = {}
     return redirect('cart.index')
+
+@user_passes_test(lambda temp: temp.is_staff, login_url = '/accounts/login/' )
+def biggest_buyer(request):
+    buyer = (User.objects.annotate(total = Sum('order__item__quantity')).filter(total__isnull = False).order_by('-total', 'username').first())
+    dataForTemplate = {'title': 'Admin Page', 'top': buyer}
+    return render(request, 'cart/biggest_buyer.html', {'dataForTemplate': dataForTemplate})
+
+
+
 
 @login_required
 def purchase(request):
